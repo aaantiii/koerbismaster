@@ -31,7 +31,7 @@ func (v EnvVar) Name() string {
 }
 
 func initEnv() error {
-	filename := ".env"
+	filename := ".env.development"
 	if PROD {
 		filename = ".env.production"
 	}
