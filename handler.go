@@ -36,12 +36,13 @@ func handle(s *discordgo.Session, m *discordgo.MessageCreate) {
 	res, err := s.ChannelMessageSend(DISCORD_PING_CHANNEL_ID.Value(), pingMessage(m.GuildID, m.ChannelID, m.ID))
 	if err != nil {
 		log.Printf("Failed to send message: %v", err)
+		return
 	}
 	log.Printf("Responded to event system action within %s.", time.Since(m.Timestamp).Round(time.Millisecond))
 
-	time.Sleep(time.Second * 30)
+	time.Sleep(time.Minute)
 	if err = s.ChannelMessageDelete(DISCORD_PING_CHANNEL_ID.Value(), res.ID); err != nil {
-		log.Printf("Failed to delete message: %v", err)
+		log.Printf("Failed to delete ping message: %v", err)
 	}
 }
 
