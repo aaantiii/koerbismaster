@@ -11,7 +11,7 @@ func handleMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Failed to handle message: %v", err)
+				log.Printf("Failed to handle MessageCreate: %v", err)
 			}
 		}()
 		handle(s, m)
