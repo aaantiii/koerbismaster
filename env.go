@@ -31,13 +31,15 @@ func (v EnvVar) Name() string {
 }
 
 func initEnv() error {
-	filename := ".env.development"
-	if PROD {
-		filename = ".env.production"
-	}
+	if err := godotenv.Load(); err != nil {
+		filename := ".env.development"
+		if PROD {
+			filename = ".env.production"
+		}
 
-	if err := godotenv.Load(filename); err != nil {
-		return err
+		if err = godotenv.Load(filename); err != nil {
+			return err
+		}
 	}
 
 	required := []EnvVar{
