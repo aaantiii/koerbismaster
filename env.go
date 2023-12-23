@@ -1,4 +1,4 @@
-package main
+package koerbismaster
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/joho/godotenv"
 )
+
+const PROD = false
 
 type EnvVar string // EnvVar type represents an environment variable.
 
@@ -30,7 +32,7 @@ func (v EnvVar) Name() string {
 	return string(v)
 }
 
-func initEnv() error {
+func LoadEnv() error {
 	if err := godotenv.Load(); err != nil {
 		filename := ".env.development"
 		if PROD {
