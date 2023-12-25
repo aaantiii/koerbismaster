@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	countdown   = time.Second * 16
+	countdown   = time.Second * 15
 	deleteAfter = time.Second * 30
 )
 
