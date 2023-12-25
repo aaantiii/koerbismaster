@@ -2,7 +2,7 @@ package koerbismaster
 
 import "github.com/bwmarrin/discordgo"
 
-func NewDiscordClient() (*discordgo.Session, error) {
+func NewClient() (*discordgo.Session, error) {
 	session, err := discordgo.New("Bot " + DISCORD_CLIENT_SECRET.Value())
 	if err != nil {
 		return nil, err

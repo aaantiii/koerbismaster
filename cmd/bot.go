@@ -18,7 +18,7 @@ func init() {
 }
 
 func main() {
-	session, err := koerbismaster.NewDiscordClient()
+	session, err := koerbismaster.NewClient()
 	if err != nil {
 		log.Fatalf("Failed to create discord session: %v", err)
 	}
