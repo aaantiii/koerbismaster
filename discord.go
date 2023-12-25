@@ -13,5 +13,6 @@ func NewDiscordClient() (*discordgo.Session, error) {
 	}
 
 	session.AddHandler(handleMessageCreate)
+	session.AddHandler(handleTypingStart)
 	return session, nil
 }

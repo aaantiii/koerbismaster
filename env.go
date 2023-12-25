@@ -8,7 +8,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const PROD = false
+const PROD = true
 
 type EnvVar string // EnvVar type represents an environment variable.
 

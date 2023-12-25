@@ -8,19 +8,55 @@ import (
 )
 
 const (
-	countdown   = time.Second * 15
-	deleteAfter = time.Second * 10
+	countdown   = time.Second * 16
+	deleteAfter = time.Second * 30
 )
+
+func handleTypingStart(s *discordgo.Session, m *discordgo.TypingStart) {
+	go func() {
+		defer handleRecovery("TypingStart")
+		if m.UserID != DISCORD_EVENT_SYS_CLIENT_ID.Value() || m.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
+			return
+		}
+
+		if err := sendPingMessage(s, time.Unix(int64(m.Timestamp), 0)); err != nil {
+			log.Printf("Failed to send ping message: %v", err)
+			return
+		}
+	}()
+}
 
 func handleMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				log.Printf("Failed to handle MessageCreate: %v", err)
+		defer handleRecovery("MessageCreate")
+		if m.Author.ID != DISCORD_EVENT_SYS_CLIENT_ID.Value() || m.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
+			return
+		}
+
+		if PROD {
+			if !checkMessageEmbed(m.Message) {
+				return
 			}
-		}()
-		handle(s, m)
+		} else {
+			if !checkMessageContent(m.Message) {
+				return
+			}
+		}
+
+		log.Println("MessageCreate: EventSystem sent message.")
+
+		if err := sendMessageLinks(s, m.Message); err != nil {
+			log.Printf("MessageCreate: failed to send message: %v", err)
+			return
+		}
+		log.Printf("MessageCreate: sent message with links.")
 	}()
+}
+
+func handleRecovery(handlerName string) {
+	if err := recover(); err != nil {
+		log.Printf("Failed to handle %s: %v", handlerName, err)
+	}
 }
 
 func checkMessageEmbed(m *discordgo.Message) bool {
@@ -39,26 +75,4 @@ func checkMessageContent(m *discordgo.Message) bool {
 	}
 
 	return isMatch
-}
-
-func handle(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if m.Author.ID != DISCORD_EVENT_SYS_CLIENT_ID.Value() || m.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
-		return
-	}
-
-	if !checkMessageEmbed(m.Message) {
-		return
-	}
-
-	log.Printf("Detected event system action within %s.", time.Since(m.Timestamp).Round(time.Millisecond))
-	res, err := sendPingMessage(s, m.Message)
-	if err != nil {
-		log.Printf("Failed to send message: %v", err)
-		return
-	}
-
-	time.Sleep(deleteAfter)
-	if err = s.ChannelMessageDelete(DISCORD_PING_CHANNEL_ID.Value(), res.ID); err != nil {
-		log.Printf("Failed to delete ping message: %v", err)
-	}
 }
