@@ -12,14 +12,14 @@ const (
 	deleteAfter = time.Second * 30
 )
 
-func handleTypingStart(s *discordgo.Session, m *discordgo.TypingStart) {
+func handleTypingStart(s *discordgo.Session, t *discordgo.TypingStart) {
 	go func() {
 		defer handleRecovery("TypingStart")
-		if m.UserID != DISCORD_EVENT_SYS_CLIENT_ID.Value() || m.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
+		if t.UserID != DISCORD_EVENT_SYS_CLIENT_ID.Value() || t.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
 			return
 		}
 
-		if err := sendPingMessage(s, time.Unix(int64(m.Timestamp), 0)); err != nil {
+		if err := sendPingMessage(s, time.Unix(int64(t.Timestamp), 0)); err != nil {
 			log.Printf("Failed to send ping message: %v", err)
 			return
 		}
