@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 
@@ -9,27 +9,29 @@ import (
 )
 
 func init() {
-	log.SetPrefix("[BOT] ")
-	log.SetFlags(log.Ldate | log.Ltime)
-
+	slog.SetDefault(koerbismaster.NewLogger())
 	if err := koerbismaster.LoadEnv(); err != nil {
-		log.Fatalf("Failed to init environment variables: %v", err)
+		slog.Error("Failed to init environment variables", slog.Any("err", err))
+		os.Exit(1)
 	}
 }
 
 func main() {
 	session, err := koerbismaster.NewClient()
 	if err != nil {
-		log.Fatalf("Failed to create discord session: %v", err)
+		slog.Error("Failed to create discord session", slog.Any("err", err))
+		os.Exit(1)
 	}
-	log.Printf("Bot is logged in as %s and running. Press CTRL-C to exit.", session.State.User.Username)
+	slog.Info("Bot is logged in and running. Press CTRL-C to exit.", slog.String("username", session.State.User.Username))
 
-	shutdownSignal := make(chan os.Signal, 1)
-	signal.Notify(shutdownSignal, os.Interrupt)
-	<-shutdownSignal
+	shutdownSig := make(chan os.Signal, 1)
+	signal.Notify(shutdownSig, os.Interrupt)
+	<-shutdownSig
 
-	log.Println("Gracefully shutting down...")
+	slog.Info("Gracefully shutting down...")
 	if err = session.Close(); err != nil {
-		log.Fatalf("Failed to close discord session: %v", err)
+		slog.Error("Failed to close discord session", slog.Any("err", err))
+		os.Exit(1)
 	}
+	slog.Info("Shutdown successful.")
 }

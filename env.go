@@ -2,17 +2,15 @@ package koerbismaster
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
-const PROD = true
-
 type EnvVar string // EnvVar type represents an environment variable.
 
 const (
+	MODE                         EnvVar = "MODE"
 	DISCORD_CLIENT_ID            EnvVar = "DISCORD_CLIENT_ID"
 	DISCORD_CLIENT_SECRET        EnvVar = "DISCORD_CLIENT_SECRET"
 	DISCORD_EVENT_SYS_CLIENT_ID  EnvVar = "DISCORD_EVENT_SYS_CLIENT_ID"
@@ -32,14 +30,10 @@ func (v EnvVar) Name() string {
 	return string(v)
 }
 
+// LoadEnv loads the environment variables from the .env file and checks if all required variables are set.
 func LoadEnv() error {
-	if err := godotenv.Load(); err != nil {
-		filename := ".env.development"
-		if PROD {
-			filename = ".env.production"
-		}
-
-		if err = godotenv.Load(filename); err != nil {
+	if MODE.Value() != "PROD" {
+		if err := godotenv.Load(); err != nil {
 			return err
 		}
 	}
@@ -59,7 +53,5 @@ func LoadEnv() error {
 			return fmt.Errorf("required env variable '%s' not set", v.Name())
 		}
 	}
-
-	log.Println("All required env variables are set.")
 	return nil
 }

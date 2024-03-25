@@ -1,7 +1,7 @@
 package koerbismaster
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -19,40 +19,45 @@ func handleTypingStart(s *discordgo.Session, t *discordgo.TypingStart) {
 	}
 
 	if err := sendPingMessage(s, time.Unix(int64(t.Timestamp), 0)); err != nil {
-		log.Printf("Failed to send ping message: %v", err)
+		slog.Error("Failed to send ping message.", slog.Any("err", err), slog.String("handler", "TypingStart"))
 		return
 	}
 }
 
 func handleMessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	defer handleRecovery("MessageCreate")
-	if m.Author.ID != DISCORD_EVENT_SYS_CLIENT_ID.Value() || m.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
+	if m.ChannelID != DISCORD_EVENT_SYS_CHANNEL_ID.Value() {
 		return
 	}
-
-	if PROD {
-		if !checkMessageEmbed(m.Message) {
-			return
-		}
-	} else {
-		if !checkMessageContent(m.Message) {
-			return
-		}
-	}
-
-	log.Println("MessageCreate: EventSystem sent message.")
-
-	if err := sendMessageLinks(s, m.Message); err != nil {
-		log.Printf("MessageCreate: failed to send message: %v", err)
+	if m.Author.ID != DISCORD_EVENT_SYS_CLIENT_ID.Value() {
+		stats.IncMessages()
 		return
 	}
-	log.Printf("MessageCreate: sent message with links.")
+	if !checkMessage(m.Message) {
+		slog.Debug("Message does not match.", slog.String("handler", "MessageCreate"))
+		return
+	}
+	slog.Info("Detected event from EventSystem.", slog.String("handler", "MessageCreate"))
+
+	go sendMessageLinks(s, m.Message)
+	if err := stats.Save(); err != nil {
+		slog.Error("Failed to save stats.", slog.Any("err", err), slog.String("handler", "MessageCreate"))
+	}
+	stats.Reset()
+	slog.Info("Saved stats.", slog.String("handler", "MessageCreate"))
 }
 
 func handleRecovery(handlerName string) {
 	if err := recover(); err != nil {
-		log.Printf("Failed to handle %s: %v", handlerName, err)
+		slog.Error("Failed to recover event.", slog.String("handler", handlerName), slog.Any("err", err))
 	}
+}
+
+func checkMessage(m *discordgo.Message) bool {
+	if MODE.Value() == "PROD" {
+		return checkMessageEmbed(m)
+	}
+	return checkMessageContent(m)
 }
 
 func checkMessageEmbed(m *discordgo.Message) bool {
@@ -65,10 +70,5 @@ func checkMessageEmbed(m *discordgo.Message) bool {
 
 // for debugging
 func checkMessageContent(m *discordgo.Message) bool {
-	isMatch := m.Content == DISCORD_EVENT_SYS_CONTENT.Value()
-	if !isMatch {
-		log.Println("Content does not match.")
-	}
-
-	return isMatch
+	return m.Content == DISCORD_EVENT_SYS_CONTENT.Value()
 }

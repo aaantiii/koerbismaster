@@ -3,5 +3,7 @@
 
 bin
 
+stats.csv
+
 go.work
 .idea

@@ -3,6 +3,7 @@ package koerbismaster
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -18,7 +19,7 @@ func sendPingMessage(s *discordgo.Session, received time.Time) error {
 
 	for i := int(countdown.Seconds()) - 1; i >= 0; i-- {
 		now := time.Now()
-		if _, err = s.ChannelMessageEdit(msg.ChannelID, msg.ID, pingMessage(i)); err != nil {
+		if _, err = s.ChannelMessageEdit(msg.ChannelID, msg.ID, createPingMessage(i)); err != nil {
 			log.Printf("Failed to edit message to update countdown: %v", err)
 			continue
 		}
@@ -28,7 +29,7 @@ func sendPingMessage(s *discordgo.Session, received time.Time) error {
 	return err
 }
 
-func sendMessageLinks(s *discordgo.Session, m *discordgo.Message) error {
+func sendMessageLinks(s *discordgo.Session, m *discordgo.Message) {
 	msg := ""
 	url := fmt.Sprintf("https://discord.com/channels/%s/%s/%s\n", m.GuildID, m.ChannelID, m.ID)
 	for i := 0; i < 3; i++ {
@@ -37,31 +38,30 @@ func sendMessageLinks(s *discordgo.Session, m *discordgo.Message) error {
 
 	res, err := s.ChannelMessageSend(DISCORD_PING_CHANNEL_ID.Value(), msg)
 	if err != nil {
-		return err
+		slog.Error("Failed to send message with links to event message.", slog.Any("err", err))
 	}
 	go deleteMessageAfter(s, res, deleteAfter)
 
-	return nil
+	slog.Info("Sent message with links to event message.")
 }
 
-func pingMessage(secondsLeft int) string {
+func createPingMessage(secondsLeft int) string {
 	msg := fmt.Sprintf("%s\nDer Link zur Nachricht wird gleich gesendet...\n", mentionRole(DISCORD_PING_ROLE_ID.Value()))
 	if secondsLeft > 0 {
 		msg += fmt.Sprintf("Noch **%d Sekunden** verfügbar.", secondsLeft)
 	} else {
-		msg += "**Event beendet.**"
+		msg += "**Event vorbei**"
 	}
-
 	return msg
 }
 
 func deleteMessageAfter(s *discordgo.Session, m *discordgo.Message, d time.Duration) {
 	time.Sleep(d)
 	if err := s.ChannelMessageDelete(m.ChannelID, m.ID); err != nil {
-		log.Printf("Failed to delete message: %v", err)
+		slog.Error("Failed to delete message.", slog.Any("err", err))
 	}
 }
 
-func mentionRole(role string) string {
-	return fmt.Sprintf("<@&%s>", role)
+func mentionRole(roleID string) string {
+	return fmt.Sprintf("<@&%s>", roleID)
 }
